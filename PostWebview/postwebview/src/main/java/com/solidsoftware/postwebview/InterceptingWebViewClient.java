@@ -1,9 +1,11 @@
-package org.solidsoftware.postwebview;
+package com.solidsoftware.postwebview;
 
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.support.annotation.Nullable;
 import android.util.Log;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -13,6 +15,7 @@ import com.squareup.okhttp.OkHttpClient;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.solidsoftware.postwebview.IOUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
@@ -24,7 +27,7 @@ import java.net.URL;
 import java.nio.charset.Charset;
 
 public class InterceptingWebViewClient extends WebViewClient {
-    public static final String TAG = "InterceptingWebViewClient";
+    public static final String TAG = "InterceptingWVC";
 
     private Context mContext = null;
     private WebView mWebView = null;
@@ -49,56 +52,66 @@ public class InterceptingWebViewClient extends WebViewClient {
         return true;
     }
 
+    @Nullable
     @Override
-    public WebResourceResponse shouldInterceptRequest(final WebView view, final String url) {
-        try {
-            // Our implementation just parses the response and visualizes it. It does not properly handle
-            // redirects or HTTP errors at the moment. It only serves as a demo for intercepting POST requests
-            // as a starting point for supporting multiple types of HTTP requests in a full fletched browser
+    public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
 
-            // Construct request
-            HttpURLConnection conn = client.open(new URL(url));
-            conn.setRequestMethod(isPOST() ? "POST" : "GET");
+        String url = request.getUrl().getPath();
 
-            // Write body
-            if (isPOST()) {
-                OutputStream os = conn.getOutputStream();
-                if (mNextAjaxRequestContents != null) {
-                    writeBody(os);
-                } else {
-                    writeForm(os);
+       if(url.contains("/season-tickets/fare-selection")) {
+            try {
+                // Our implementation just parses the response and visualizes it. It does not properly handle
+                // redirects or HTTP errors at the moment. It only serves as a demo for intercepting POST requests
+                // as a starting point for supporting multiple types of HTTP requests in a full fletched browser
+
+                // Construct request
+                HttpURLConnection conn = client.open(new URL(request.getUrl().toString()));
+                conn.setRequestMethod(request.getMethod());
+
+                // Write body
+                if (isPOST()) {
+                    OutputStream os = conn.getOutputStream();
+                    if (mNextAjaxRequestContents != null) {
+                        writeBody(os);
+                    } else {
+                        writeForm(os);
+                    }
+                    os.close();
                 }
-                os.close();
+
+                // Read input
+                String charset = conn.getContentEncoding() != null ? conn.getContentEncoding() : Charset.defaultCharset().displayName();
+                String mime = conn.getContentType();
+                byte[] pageContents = IOUtils.readFully(conn.getInputStream());
+
+                // Perform JS injection
+                if (mime.equals("text/html; charset=utf-8")) {
+                    pageContents = PostInterceptJavascriptInterface
+                            .enableIntercept(mContext, pageContents)
+                            .getBytes(charset);
+                }
+
+                // Convert the contents and return
+                InputStream isContents = new ByteArrayInputStream(pageContents);
+
+                return new WebResourceResponse("text/html", charset,
+                        isContents);
+            } catch (FileNotFoundException e) {
+                Log.w(TAG, "Error 404: " + e.getMessage());
+                e.printStackTrace();
+
+                return null;        // Let Android try handling things itself
+            } catch (Exception e) {
+                e.printStackTrace();
+
+                return null;        // Let Android try handling things itself
             }
-
-            // Read input
-            String charset = conn.getContentEncoding() != null ? conn.getContentEncoding() : Charset.defaultCharset().displayName();
-            String mime = conn.getContentType();
-            byte[] pageContents = IOUtils.readFully(conn.getInputStream());
-
-            // Perform JS injection
-            if (mime.equals("text/html")) {
-                pageContents = PostInterceptJavascriptInterface
-                        .enableIntercept(mContext, pageContents)
-                        .getBytes(charset);
-            }
-
-            // Convert the contents and return
-            InputStream isContents = new ByteArrayInputStream(pageContents);
-
-            return new WebResourceResponse(mime, charset,
-                    isContents);
-        } catch (FileNotFoundException e) {
-            Log.w(TAG, "Error 404: " + e.getMessage());
-            e.printStackTrace();
-
-            return null;        // Let Android try handling things itself
-        } catch (Exception e) {
-            e.printStackTrace();
-
-            return null;        // Let Android try handling things itself
         }
+
+
+        return super.shouldInterceptRequest(view, request);
     }
+
 
     private boolean isPOST() {
         return (mNextFormRequestContents != null || mNextAjaxRequestContents != null);

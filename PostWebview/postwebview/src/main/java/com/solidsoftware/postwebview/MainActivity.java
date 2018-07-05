@@ -1,9 +1,9 @@
-package org.solidsoftware.postwebview;
+package com.solidsoftware.postwebview;
 
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.support.v7.app.ActionBarActivity;
+import android.support.v7.app.AppCompatActivity;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -13,7 +13,9 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.widget.EditText;
 
-public class MainActivity extends ActionBarActivity {
+import org.solidsoftware.postwebview.R;
+
+public class MainActivity extends AppCompatActivity {
 
     private EditText mAddressView = null;
     private WebView mWebView = null;
@@ -23,7 +25,6 @@ public class MainActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mAddressView = (EditText) findViewById(R.id.addressView);
         mWebView = (WebView) findViewById(R.id.webView);
 
         WebSettings settings = mWebView.getSettings();
@@ -35,30 +36,11 @@ public class MainActivity extends ActionBarActivity {
             WebView.setWebContentsDebuggingEnabled(true);
         }
 
-        loadOnEnter();
-    }
-
-    private void loadOnEnter() {
-        mAddressView.setOnKeyListener(new View.OnKeyListener() {
-
-            @Override
-            public boolean onKey(View v, int keyCode, KeyEvent event) {
-                if ((event.getAction() == KeyEvent.ACTION_DOWN)
-                        && (keyCode == KeyEvent.KEYCODE_ENTER)) {
-                    load();
-                }
-
-                return true;
-            }
-        });
-    }
-
-    public void buttonClicked(View v) {
         load();
-        mWebView.requestFocus();
     }
 
     private void load() {
-        mWebView.loadUrl(mAddressView.getText().toString());
+        mWebView.loadUrl("https://www.thetrainline.com/season-tickets");
+        mWebView.requestFocus();
     }
 }

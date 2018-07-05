@@ -7,31 +7,6 @@
     tools:ignore="MergeRootFrame"
     android:orientation="vertical" >
 
-    <RelativeLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-
-        <Button
-            style="?android:attr/buttonStyleSmall"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Go"
-            android:id="@+id/go_button"
-            android:onClick="buttonClicked"
-            android:layout_alignParentTop="true"
-            android:layout_alignParentRight="true"
-            android:layout_alignParentEnd="true" />
-
-        <!-- Change android text below to "http://www.w3schools.com/ajax/default.ASP" to test AJAX -->
-        <EditText
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_toLeftOf="@id/go_button"
-            android:text="http://cgi-lib.berkeley.edu/ex/simple-form.html"
-            android:id="@+id/addressView"
-            android:layout_centerVertical="true" />
-    </RelativeLayout>
-
     <WebView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
